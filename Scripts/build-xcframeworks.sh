@@ -58,7 +58,8 @@ for product in "${products[@]}"; do
       -archivePath "$archive_path" \
       -derivedDataPath "$derived_data_dir" \
       SKIP_INSTALL=NO \
-      BUILD_LIBRARY_FOR_DISTRIBUTION=NO \
+      BUILD_LIBRARY_FOR_DISTRIBUTION=YES \
+      OTHER_SWIFT_FLAGS="-no-verify-emitted-module-interface" \
       ONLY_ACTIVE_ARCH=NO
 
     framework_path="$(find "${derived_data_dir}/Build/Intermediates.noindex/ArchiveIntermediates/${product}/BuildProductsPath" -type d -path "*/PackageFrameworks/${product}.framework" -print -quit)"
