@@ -71,7 +71,35 @@ for product in "${products[@]}"; do
       find "$archive_path" -maxdepth 5 -print >&2
       exit 1
     fi
-    frameworks+=("-framework" "$framework_path")
+
+    module_path="$(find "${derived_data_dir}/Build/Intermediates.noindex/ArchiveIntermediates/${product}/BuildProductsPath" -type d -name "${product}.swiftmodule" -print -quit)"
+    if [[ -z "$module_path" ]]; then
+      echo "error: ${product}.swiftmodule not found for ${archive_path}" >&2
+      find "$derived_data_dir" -maxdepth 8 -name "${product}.swiftmodule" -print >&2
+      exit 1
+    fi
+
+    slice_dir="${work_dir}/slices/${product}-${slug}"
+    framework_copy="${slice_dir}/${product}.framework"
+    rm -rf "$slice_dir"
+    mkdir -p "$slice_dir"
+    ditto "$framework_path" "$framework_copy"
+
+    if [[ -d "${framework_copy}/Versions/A" ]]; then
+      modules_root="${framework_copy}/Versions/A/Modules"
+      mkdir -p "$modules_root"
+      ditto "$module_path" "${modules_root}/${product}.swiftmodule"
+      if [[ ! -e "${framework_copy}/Modules" ]]; then
+        ln -s "Versions/Current/Modules" "${framework_copy}/Modules"
+      fi
+    else
+      modules_root="${framework_copy}/Modules"
+      mkdir -p "$modules_root"
+      ditto "$module_path" "${modules_root}/${product}.swiftmodule"
+    fi
+
+    codesign --force --sign - "$framework_copy"
+    frameworks+=("-framework" "$framework_copy")
   done
 
   xcframework_path="${dist_dir}/${product}.xcframework"
