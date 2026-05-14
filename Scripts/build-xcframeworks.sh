@@ -24,6 +24,7 @@ platforms=(
 work_dir="${RUNNER_TEMP:-/tmp}/xctest-dynamic-overlay-${release_tag}"
 source_dir="${work_dir}/source"
 archive_dir="${work_dir}/archives"
+derived_data_dir="${work_dir}/DerivedData"
 dist_dir="${PWD}/dist"
 
 rm -rf "$work_dir" "$dist_dir"
@@ -55,13 +56,18 @@ for product in "${products[@]}"; do
       -scheme "$product" \
       -destination "$destination" \
       -archivePath "$archive_path" \
+      -derivedDataPath "$derived_data_dir" \
       SKIP_INSTALL=NO \
       BUILD_LIBRARY_FOR_DISTRIBUTION=NO \
       ONLY_ACTIVE_ARCH=NO
 
-    framework_path="$(find "${archive_path}/Products" -type d -name "${product}.framework" -print -quit)"
+    framework_path="$(find "${derived_data_dir}/Build/Intermediates.noindex/ArchiveIntermediates/${product}/BuildProductsPath" -type d -path "*/PackageFrameworks/${product}.framework" -print -quit)"
+    if [[ -z "$framework_path" ]]; then
+      framework_path="$(find "${archive_path}/Products" -type d -name "${product}.framework" -print -quit)"
+    fi
     if [[ -z "$framework_path" ]]; then
       echo "error: ${product}.framework not found in ${archive_path}" >&2
+      find "$derived_data_dir" -maxdepth 8 -name "${product}.framework" -print >&2
       find "$archive_path" -maxdepth 5 -print >&2
       exit 1
     fi
